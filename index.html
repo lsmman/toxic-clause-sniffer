@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>독소조항 스니퍼 — 계약 전 위험 콕 집어보기</title>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<style>
+  :root {
+    --bg: #fafafa;
+    --card: #fff;
+    --border: #e5e7eb;
+    --text: #111;
+    --muted: #6b7280;
+    --accent: #dc2626;
+    --accent-soft: #fef2f2;
+    --high: #dc2626;
+    --mid: #d97706;
+    --low: #6b7280;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+    padding: 20px 16px 40px;
+  }
+  .container {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  header {
+    margin-bottom: 20px;
+  }
+  h1 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin-top: 4px;
+  }
+  .alert-box {
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.85rem;
+    color: #92400e;
+    margin: 12px 0 16px;
+  }
+  .input-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .input-label {
+    font-weight: 600;
+    font-size: 0.92rem;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .input-label .badge {
+    font-size: 0.7rem;
+    background: #e5e7eb;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.92rem;
+    font-family: inherit;
+    resize: vertical;
+    background: #fff;
+    color: var(--text);
+  }
+  textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .upload-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .upload-btn {
+    background: #f3f4f6;
+    border: 1px dashed #d1d5db;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .upload-btn:hover { background: #e5e7eb; }
+  #fileInput { display: none; }
+  .ocr-status {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-top: 6px;
+    min-height: 18px;
+  }
+  .ocr-status.processing { color: var(--mid); }
+  .ocr-status.done { color: #059669; }
+  .ocr-status.error { color: var(--high); }
+  .analyze-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  .analyze-btn:hover { background: #b91c1c; }
+  .analyze-btn:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+  }
+  .result-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    display: none;
+  }
+  .result-section.visible { display: block; }
+  .result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .result-title {
+    font-size: 0.92rem;
+    font-weight: 600;
+  }
+  .overall-risk {
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  .overall-risk.high { background: #fef2f2; color: var(--high); }
+  .overall-risk.mid { background: #fffbeb; color: var(--mid); }
+  .overall-risk.low { background: #f3f4f6; color: var(--low); }
+  .overall-label { font-weight: 700; margin-right: 4px; }
+  .clause-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .clause-card.high { border-left: 4px solid var(--high); }
+  .clause-card.mid { border-left: 4px solid var(--mid); }
+  .clause-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .risk-tag {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .risk-tag.high { background: #fef2f2; color: var(--high); }
+  .risk-tag.mid { background: #fffbeb; color: var(--mid); }
+  .category-name { font-weight: 600; font-size: 0.92rem; }
+  .quote {
+    background: #f9fafb;
+    border: 1px solid #f3f4f6;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    color: #374151;
+    margin-bottom: 8px;
+    font-style: italic;
+  }
+  .quote::before { content: "원문: "; font-weight: 600; color: var(--muted); font-style: normal; }
+  .problem {
+    font-size: 0.88rem;
+    margin-bottom: 6px;
+  }
+  .problem::before { content: "문제점: "; font-weight: 600; color: var(--muted); }
+  .checkpoint {
+    font-size: 0.85rem;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: #166534;
+  }
+  .checkpoint::before { content: "체크포인트: "; font-weight: 600; color: #15803d; }
+  .summary-line {
+    margin-top: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 0.88rem;
+    color: var(--muted);
+  }
+  .disclaimer {
+    margin-top: 14px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    background: #f9fafb;
+    border-radius: 6px;
+    padding: 8px 10px;
+    line-height: 1.45;
+  }
+  .exception-msg {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 12px;
+    color: var(--high);
+    font-weight: 500;
+  }
+  .clear-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  .clear-btn:hover { background: #f3f4f6; }
+  .memo-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    font-size: 0.82rem;
+  }
+  .memo-input {
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-family: inherit;
+  }
+  .empty-state {
+    text-align: center;
+    padding: 24px;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>독소조항 스니퍼</h1>
+    <div class="subtitle">계약서·약관 특약을 붙여넣거나 사진으로 올리면, 소비자에게 불리한 조항을 찾아 위험도와 근거를 알려드려요.</div>
+  </header>
+
+  <div class="alert-box">
+    ⚠️ 이 서비스는 법률 자문이 아니라 <strong>계약 서명 전 위험 인지를 돕기 위한 참고 정보</strong>예요. 구체적 판단이 필요하면 변호사 등 전문가 상담을 권해 드려요.
+  </div>
+
+  <div class="input-section">
+    <div class="input-label">
+      특약 조항 붙여넣기
+      <span class="badge">필수</span>
+    </div>
+    <textarea id="textInput" placeholder="예: 특약사항 1. 임차인은 임대인의 요청이 있을 경우 언제든지 집을 보여줘야 하며..."></textarea>
+
+    <div class="upload-row">
+      <label class="upload-btn" id="uploadBtn">📷 사진 올려서 텍스트 추출</label>
+      <input type="file" id="fileInput" accept="image/*">
+      <span style="font-size:0.78rem;color:var(--muted)">계약서의 해당 조항 사진 · 스캔 이미지</span>
+    </div>
+    <div class="ocr-status" id="ocrStatus"></div>
+  </div>
+
+  <button class="analyze-btn" id="analyzeBtn">분석하기</button>
+
+  <div class="memo-row">
+    <input type="text" class="memo-input" id="memoInput" placeholder="어떤 계약서인지 메모 (예: 관악구 원룸 월세 — 2026.3)">
+    <button class="clear-btn" id="clearMemoBtn">저장 안 함</button>
+  </div>
+
+  <div class="result-section" id="resultSection">
+    <div class="result-header">
+      <div class="result-title">분석 결과</div>
+      <div id="overallRisk"></div>
+    </div>
+    <div id="resultBody"></div>
+    <div class="disclaimer">※ 본 분석은 법률 자문이 아니라 계약 서명 전 위험 인지를 돕기 위한 참고 정보입니다. 구체적인 법률 판단이 필요하시면 변호사 등 전문가의 상담을 받으시길 권해 드립니다.</div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const textInput = document.getElementById('textInput');
+  const fileInput = document.getElementById('fileInput');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const ocrStatus = document.getElementById('ocrStatus');
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  const resultSection = document.getElementById('resultSection');
+  const resultBody = document.getElementById('resultBody');
+  const overallRisk = document.getElementById('overallRisk');
+  const memoInput = document.getElementById('memoInput');
+  const clearMemoBtn = document.getElementById('clearMemoBtn');
+
+  // 메모 복원
+  const savedMemo = localStorage.getItem('toxicClauseMemo');
+  if (savedMemo) memoInput.value = savedMemo;
+
+  clearMemoBtn.addEventListener('click', function() {
+    localStorage.removeItem('toxicClauseMemo');
+    memoInput.value = '';
+  });
+
+  memoInput.addEventListener('input', function() {
+    const val = memoInput.value.trim();
+    if (val) localStorage.setItem('toxicClauseMemo', val);
+    else localStorage.removeItem('toxicClauseMemo');
+  });
+
+  // 사진 업로드 → OCR
+  uploadBtn.addEventListener('click', function() {
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    ocrStatus.textContent = '이미지 읽는 중…';
+    ocrStatus.className = 'ocr-status processing';
+
+    Tesseract.recognize(file, 'ko', {
+      logger: function(m) {
+        if (m.status === 'recognizing text') {
+          ocrStatus.textContent = '텍스트 인식 중…';
+        }
+      }
+    }).then(function(result) {
+      const extracted = result.data.text.trim();
+      if (!extracted) {
+        ocrStatus.textContent = '이미지에서 텍스트를 읽지 못했어요. 더 선명한 사진으로 다시 올려주세요.';
+        ocrStatus.className = 'ocr-status error';
+        return;
+      }
+      // OCR 결과 + 기존 텍스트 합침
+      const existing = textInput.value.trim();
+      textInput.value = (existing ? existing + '\n\n' : '') + extracted;
+      ocrStatus.textContent = `텍스트 추출 완료 (${extracted.length}자) — 아래 textarea에 추가됐어요. 필요 없으면 지워도 돼요.`;
+      ocrStatus.className = 'ocr-status done';
+    }).catch(function(err) {
+      ocrStatus.textContent = '인식에 실패했어요. 더 선명한 사진으로 다시 올려주세요.';
+      ocrStatus.className = 'ocr-status error';
+    });
+  });
+
+  analyzeBtn.addEventListener('click', function() {
+    const text = textInput.value.trim();
+    if (!text) {
+      textInput.focus();
+      textInput.style.borderColor = 'var(--accent)';
+      setTimeout(() => textInput.style.borderColor = '', 1500);
+      return;
+    }
+
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = '분석 중…';
+    resultSection.classList.remove('visible');
+    resultBody.innerHTML = '';
+    overallRisk.innerHTML = '';
+
+    fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(result) {
+      analyzeBtn.disabled = false;
+      analyzeBtn.textContent = '분석하기';
+
+      if (!result.ok) {
+        // 예외 메시지
+        resultSection.classList.add('visible');
+        resultBody.innerHTML = `<div class="exception-msg">${result.message}</div>`;
+        overallRisk.innerHTML = '';
+        return;
+      }
+
+      // 독소조항 없는 경우
+      if (!result.items || result.items.length === 0) {
+        resultSection.classList.add('visible');
+        let html = `<div class="empty-state">${result.note}</div>`;
+        if (result.overallRisk === '하') {
+          html += `<div class="summary-line">종합 위험도: <strong>하</strong></div>`;
+        }
+        resultBody.innerHTML = html;
+        overallRisk.innerHTML = '';
+        return;
+      }
+
+      // 위험도 색상
+      function riskClass(risk) {
+        if (risk === '상') return 'high';
+        if (risk === '중') return 'mid';
+        return 'low';
+      }
+
+      let html = '';
+      for (const item of result.items) {
+        html += `<div class="clause-card ${riskClass(item.risk)}">`;
+        html += `<div class="clause-head">`;
+        html += `<span class="risk-tag ${riskClass(item.risk)}">${item.risk}</span>`;
+        html += `<span class="category-name">${item.category}</span>`;
+        html += `</div>`;
+        html += `<div class="quote">${item.quote}</div>`;
+        html += `<div class="problem">${item.problem}</div>`;
+        html += `<div class="checkpoint">${item.checkpoint}</div>`;
+        html += `</div>`;
+      }
+
+      // 종합 위험도 배지
+      const overallClass = riskClass(result.overallRisk);
+      overallRisk.innerHTML = `<span class="overall-risk ${overallClass}"><span class="overall-label">종합 위험도</span>${result.overallRisk}</span>`;
+
+      // 부분 제공 안내
+      let footer = '';
+      if (result.isPartial) {
+        footer += `<div class="summary-line">※ 일부 조항만 제공되어 전체 계약 맥락을 반영하지 못했을 수 있습니다.</div>`;
+      }
+      footer += `<div class="summary-line">탐지된 조항 ${result.items.length}개 · 종합 위험도: <strong>${result.overallRisk}</strong></div>`;
+
+      resultBody.innerHTML = html + footer;
+      resultSection.classList.add('visible');
+    })
+    .catch(function(err) {
+      analyzeBtn.disabled = false;
+      analyzeBtn.textContent = '분석하기';
+      resultSection.classList.add('visible');
+      resultBody.innerHTML = `<div class="exception-msg">분석 중 오류가 났어요. 잠시 후 다시 시도해 주세요.</div>`;
+    });
+  });
+})();
+</script>
+</body>
+</html>
