@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>독소조항 스니퍼 — 계약 전 위험 콕 집어보기</title>
+<title>위험조항 검토기 — 계약 전 위험 콕 집어보기</title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
   :root {
@@ -278,7 +278,7 @@
 <body>
 <div class="container">
   <header>
-    <h1>독소조항 스니퍼</h1>
+    <h1>위험조항 검토기</h1>
     <div class="subtitle">계약서·약관 특약을 붙여넣거나 사진으로 올리면, 소비자에게 불리한 조항을 찾아 위험도와 근거를 알려드려요.</div>
   </header>
 
@@ -415,7 +415,7 @@
         return;
       }
 
-      // 독소조항 없는 경우
+      // 위험조항 없는 경우
       if (!result.items || result.items.length === 0) {
         resultSection.classList.add('visible');
         let html = `<div class="empty-state">${result.note}</div>`;
